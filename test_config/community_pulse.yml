@@ -1,0 +1,15 @@
+
+settings:
+  opensearch:
+    hosts: 
+      - https://admin:admin@localhost:9200
+    use_ssl: True
+    verify_certs: False
+
+jobs:
+  twitter: 
+    translate: True
+    query: "OpenSearch -OpenSearch2 -#NFT -opensea -openseanft"
+    ignore:
+      username: 
+        - archivearticles

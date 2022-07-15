@@ -1,0 +1,7 @@
+ghsearcher
+tweepy
+opensearch-py
+google-cloud-translate
+iso-639
+pyyaml
+jsonpath-ng
