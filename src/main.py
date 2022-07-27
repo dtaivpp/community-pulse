@@ -10,24 +10,17 @@ dotenv.load_dotenv()
 #os_pw = getenv("OPENSEARCH_PASSWORD")
 
 
-# OpenSearch Client
-os_client = OpenSearch(
-    ['https://admin:admin@localhost:9200'],
-    use_ssl=True,
-    verify_certs=False)
-
-jobs_map = {
-    'twitter': twitter.gen_twitter_executor(os_client)
-}
-
-
 if __name__=="__main__":
     full_config = parse_config('./test_config/community_pulse.yml')
     
     os_client = create_opensearch_client(full_config['settings']['opensearch'])
 
+    jobs_map = {
+        'twitter': twitter.gen_twitter_executor(os_client)
+    }
+
     enforce_index_templates(os_client)
-    create_meta_indices(os_client)
+    #create_meta_indices(os_client)
 
     for job, config in full_config['jobs'].items():
         curr_job = jobs_map.get(job)
