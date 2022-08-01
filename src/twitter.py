@@ -1,33 +1,41 @@
 from os import getenv
 from opensearchpy import OpenSearch
-from util import to_ndjson, to_opensearch
+from util import to_ndjson, to_opensearch, backoff, get_os_client
 import tweepy
+import time
+import logging
 
+logger = logging.getLogger('community-pulse')
 
-def get_data(querystring, os_client, translate: bool, ignore):
+def get_data(querystring, translate: bool, ignore):
     """
     Get Tweets is a consumable stream of tweets that match the arg params
     """
     from datetime import datetime, timedelta
-    from util import set_marker
+    from util import _set_marker, get_os_client
     from html import unescape
     if translate:
         from util import translate_text
 
     cl = create_twitter_client()
-    most_recent_tweet_id = get_marker(os_client)
+    ## Needs updating such that if the marker wasn't from within the last
+    ##    7 days it returns none
+    most_recent_tweet_id = get_marker()
 
     tw_detail = []
     tw_index = f"tweets-{datetime.date(datetime.now())}"
 
-    tweets = tweepy.Paginator(cl.search_recent_tweets, 
+    tweets = tweepy.Paginator(cl.search_recent_tweets,  
                                 querystring,
                                 tweet_fields=['id', 'author_id', 'text', 'lang', 'public_metrics', 'created_at', 'entities'],
                                 expansions=['author_id', 'referenced_tweets.id'], 
                                 user_fields=['username'],
-                                since_id=most_recent_tweet_id)
+                                max_results=50,
+                                since_id=None)
+                                #reverse=True)
 
-    for tweet_page in tweets:
+    for tweet_page in tweets_iterator(tweets):
+    # for tweet_page in tweets:
         # If no tweets break
         if tweet_page.data == None:
             break
@@ -66,7 +74,25 @@ def get_data(querystring, os_client, translate: bool, ignore):
             tw_detail.append(mode)
             tw_detail.append(tmp_tweet)
 
+        logger.debug(f"Total Collected Tweets: {len(tw_detail)/2}")
     return tw_detail
+
+
+def tweets_iterator(iterator):
+    """Uses an iterator on the pagination to apply backoff to failed requests"""
+    twpages = iter(iterator)
+    sleep_time = 4
+    while twpages:
+        time.sleep(sleep_time)
+        try:
+            data = next(twpages)
+            yield data
+            sleep_time = 4
+        except (tweepy.errors.TwitterServerError, tweepy.errors.TooManyRequests) as e:
+            logger.debug(f"Twitter 503/429. Backing off for: {sleep_time}s")
+            sleep_time = backoff(sleep_time)
+        except StopIteration:
+            return None
 
 
 def create_twitter_client() -> tweepy.Client:
@@ -75,45 +101,55 @@ def create_twitter_client() -> tweepy.Client:
         token = getenv("TW_BEARER_TOKEN")
         cl = tweepy.Client(bearer_token=token)
     except Exception as e:
-        print(e)
+        logger.exception(e)
     return cl
 
 
-def gen_twitter_executor(os_client: OpenSearch):   
+def gen_twitter_executor():
     def execute_twitter(query: str, translate=False, ignore={}):
-        tweets = get_data(os_client=os_client, 
-                                querystring=query, 
-                                translate=translate,
-                                ignore=ignore)
+        tweets = get_data(querystring=query, 
+                          translate=translate,
+                          ignore=ignore)
 
-        to_opensearch(os_client, to_ndjson(tweets))
+        to_opensearch(to_ndjson(tweets))
     return execute_twitter
 
 
 def full_lang(tweet_lang: str) -> str:
     """Transates the ISO639 Language Code into full name"""
     from iso639 import languages
+
+    lang_dict = {
+        'und': 'Undefined',
+        'zxx': 'No linguistic content',
+        'qme': 'Media Links',
+        'qht': 'Hashtags', 
+        'in': 'Indonesian'
+    }
+
     lang = "" 
     try:
-        if tweet_lang == 'und':
-            lang = 'Undefined'
-        elif tweet_lang == 'zxx':
-            lang = 'No linguistic content'
-        elif tweet_lang== 'qme':
-            lang = 'Media Links'
-        elif tweet_lang == 'qht':
-            lang = 'Hashtags'
+        if tweet_lang in lang_dict:
+            lang = lang_dict.get(tweet_lang)
         elif tweet_lang != '':
             lang = languages.get(part1=tweet_lang).name
 
     except:
+        logger.error("Language not found: %s".format(tweet_lang))
         pass
         
     return lang
 
 
-def get_marker(os_client: OpenSearch):
+def get_marker():
     """Get the last indexed tweet ID"""
+    os_client = get_os_client()
+    """             "range": {
+            "created_at": {
+                "gte": "now-7d/d",
+                "lt": "now/d"
+            }
+        }, """
     query = {
         "fields": ["_id"],
         "sort": [{
