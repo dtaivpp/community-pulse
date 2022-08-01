@@ -1,6 +1,9 @@
+from util import get_os_client
 
-def enforce_index_templates(os_client):
+def enforce_index_templates():
     """Validate index template is in place"""
+    os_client = get_os_client()
+
     if not os_client.indices.exists_index_template("tweets"):
         body = {
             "index_patterns": [

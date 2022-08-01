@@ -14,9 +14,8 @@ Getting started is fairly straight forward.
 4. Create a .env file in the root of the repo with the required variables
     - `TW_BEARER_TOKEN=<token here>`
 5. Create a cron task to run the automation intermittently 
-    - `crontab -e 0 * * * * <path to python> <path to main.py>`
+    - `crontab -e 0 * * * *  cd <working dir> && <path to python> <path to main.py>`
 6. *Optional:* Setup translation
     - Setup the authentication for Googles Translation API: https://cloud.google.com/translate/docs/setup
-
 
 opensearchDashboards.branding.useExpandedHeader: false
