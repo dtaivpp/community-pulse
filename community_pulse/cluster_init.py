@@ -1,4 +1,4 @@
-from util import get_os_client
+from community_pulse.util import get_os_client
 
 def enforce_index_templates():
     """Validate index template is in place"""
