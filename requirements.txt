@@ -1,4 +1,3 @@
-ghsearcher
 tweepy
 opensearch-py
 google-cloud-translate

@@ -1,6 +1,7 @@
 
 settings:
   log_level: DEBUG
+  log_dir: /var/log/
   opensearch:
     hosts: 
       - https://admin:admin@localhost:9200
