@@ -5,3 +5,4 @@ google-cloud-translate
 iso-639
 pyyaml
 jsonpath-ng
+pytest

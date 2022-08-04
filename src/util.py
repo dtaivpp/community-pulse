@@ -95,20 +95,22 @@ def parse_config(config='/etc/community-pulse.yml'):
     return jobs
 
 
-def jsonpath_filters(filterlist: dict) -> dict:
+def jsonpath_filters(filterlist: dict) -> list:
     from jsonpath_ng import parser
-    filters = {}
+    filters = []
 
-    for key, value in filterlist:
-        filters.append({parser(key): value})
+    for key, values in filterlist.items():
+        filters.append((parser.parse(key), values))
+    
+    return filters
 
 
-def matches_filter(jsonpath_filters, tweet) -> bool:
+def matches_filter(jsonpath_filters, doc) -> bool:
     from jsonpath_ng import jsonpath
 
-    for path, values in path_list.items(): 
-        matches = [match.value for match in path.find(tweet)]
-        if any(values) in matches:
+    for path, values in jsonpath_filters: 
+        matches = [match.value for match in path.find(doc)]
+        if any(match in values for match in matches):
             return True
     
     return False
@@ -116,8 +118,8 @@ def matches_filter(jsonpath_filters, tweet) -> bool:
 
 def backoff(current_backoff, max_backoff=360) -> int:
     """Calculates exponential backoff"""
-    if not current_backoff > max_backoff: 
-        return current_backoff * current_backoff
+    if not (current_backoff**2) > max_backoff: 
+        return (current_backoff**2)
     else: return max_backoff
 
 
