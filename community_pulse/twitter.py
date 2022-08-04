@@ -1,6 +1,6 @@
 from os import getenv
 from opensearchpy import OpenSearch
-from util import to_ndjson, to_opensearch, backoff, get_os_client
+from community_pulse.util import to_ndjson, to_opensearch, backoff, get_os_client
 import tweepy
 import time
 import logging
@@ -12,10 +12,10 @@ def get_data(querystring, translate: bool, ignore):
     Get Tweets is a consumable stream of tweets that match the arg params
     """
     from datetime import datetime, timedelta
-    from util import _set_marker, get_os_client
+    from community_pulse.util import _set_marker, get_os_client
     from html import unescape
     if translate:
-        from util import translate_text
+        from community_pulse.util import translate_text
 
     cl = create_twitter_client()
     ## Needs updating such that if the marker wasn't from within the last
