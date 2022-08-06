@@ -1,19 +1,19 @@
-from os import getenv
+import time
+import logging
+#import argparse
 import dotenv
 from community_pulse.cluster_init import enforce_index_templates, create_meta_indices
 from community_pulse.util import parse_config, initialize_opensearch_client, init_logging
 import community_pulse.twitter
-import logging
-from logging.handlers import RotatingFileHandler
-import time
-import argparse
 
 logger = logging.getLogger('community-pulse')
 dotenv.load_dotenv()
 
 def main():
-    parser = argparse.ArgumentParser(description='Community-Pulse is a project for collecting and aggregating community data.')
-    args = parser.parse_args()
+    """Main loop for community pulse"""
+    #parser = argparse.ArgumentParser(description="""Community-Pulse is a project for collecting \
+    #                                                and aggregating community data.""")
+    #args = parser.parse_args()
 
 
     full_config = parse_config('./test_config/community_pulse.yml')
@@ -31,10 +31,10 @@ def main():
     for job, config in full_config['jobs'].items():
         curr_job = jobs_map.get(job)
         start = time.time()
-        logger.debug(f"Starting Job {job}")
+        logger.debug("Starting Job %s", job)
         curr_job(**config)
         end = time.time()
-        logger.debug(f"Finshed {job} in: {end - start}s")
+        logger.debug("Finshed %s in: %is", job, end - start)
 
 
 if __name__=="__main__":

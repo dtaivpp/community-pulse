@@ -38,6 +38,6 @@ def enforce_index_templates():
         os_client.indices.put_index_template("tweets", body=body)
 
 
-def create_meta_indices(os_client):
+""" def create_meta_indices(os_client):
     if not os_client.indices.exists("markers"):
-        os_client.indices.create("markers")
+        os_client.indices.create("markers") """
