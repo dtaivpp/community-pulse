@@ -32,4 +32,4 @@ indent-string='  '
 ignore-paths = ["test/*"]
 
 [tool.autopep8]
-indent-size=2p
+indent-size=2
