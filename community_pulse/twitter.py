@@ -1,23 +1,22 @@
 from os import getenv
-from opensearchpy import OpenSearch
-from community_pulse.util import to_ndjson, to_opensearch, backoff, get_os_client
-import tweepy
+from datetime import datetime
 import time
 import logging
+import tweepy
+from community_pulse.util import to_ndjson, to_opensearch, backoff, get_os_client
+
 
 logger = logging.getLogger('community-pulse')
 
-def get_data(querystring, translate: bool, ignore):
+def get_data(querystring, translate: bool, ignore: list):
     """
     Get Tweets is a consumable stream of tweets that match the arg params
     """
-    from datetime import datetime, timedelta
-    from community_pulse.util import _set_marker, get_os_client
     from html import unescape
     if translate:
         from community_pulse.util import translate_text
 
-    cl = create_twitter_client()
+    client = create_twitter_client()
     ## Needs updating such that if the marker wasn't from within the last
     ##    7 days it returns none
     most_recent_tweet_id = get_marker()
@@ -25,19 +24,25 @@ def get_data(querystring, translate: bool, ignore):
     tw_detail = []
     tw_index = f"tweets-{datetime.date(datetime.now())}"
 
-    tweets = tweepy.Paginator(cl.search_recent_tweets,  
+    tweets = tweepy.Paginator(client.search_recent_tweets,
                                 querystring,
-                                tweet_fields=['id', 'author_id', 'text', 'lang', 'public_metrics', 'created_at', 'entities'],
-                                expansions=['author_id', 'referenced_tweets.id'], 
+                                tweet_fields=['id',
+                                              'author_id',
+                                              'text',
+                                              'lang',
+                                              'public_metrics',
+                                              'created_at',
+                                              'entities'],
+                                expansions=['author_id', 'referenced_tweets.id'],
                                 user_fields=['username'],
                                 max_results=50,
-                                since_id=None)
+                                since_id=most_recent_tweet_id)
                                 #reverse=True)
 
     for tweet_page in tweets_iterator(tweets):
     # for tweet_page in tweets:
         # If no tweets break
-        if tweet_page.data == None:
+        if tweet_page.data is None:
             break
 
         users = {u["id"]: u for u in tweet_page.includes['users']}
@@ -53,28 +58,29 @@ def get_data(querystring, translate: bool, ignore):
 
             # Used to restore full text if the referenced tweet is a reply/reweet
             if 'referenced_tweets' in tweet:
-              for ref_tweet in tweet.referenced_tweets:
-                if ref_tweet.type == "retweeted":
-                  tmp_tweet['text'] = referenced_tweets[ref_tweet.id]
+                for ref_tweet in tweet.referenced_tweets:
+                    if ref_tweet.type == "retweeted":
+                        tmp_tweet['text'] = referenced_tweets[ref_tweet.id]
 
-                if ref_tweet.type != "replied_to":
-                  tmp_tweet['referenced'] = referenced_tweets[ref_tweet.id]
+                    if ref_tweet.type != "replied_to":
+                        tmp_tweet['referenced'] = referenced_tweets[ref_tweet.id]
 
             # Translate if the tweet isn't in English
             if translate and tweet.lang not in ['en', '', 'zxx', 'qme', 'qht', 'und' ]:
                 tmp_tweet['text'] = translate_text(tmp_tweet['text'])
-            
+
             tmp_tweet['text'] = unescape(tmp_tweet['text'])
 
             tmp_tweet['full_lang'] = full_lang(tweet.lang)
             tmp_tweet['username'] = users[tweet.author_id].username
-            tmp_tweet['url'] = f"https://twitter.com/{users[tweet.author_id].username}/status/{tweet.id}"
+            tmp_tweet['url'] = f"https://twitter.com/{users[tweet.author_id].username}/status/{tweet.id}" # pylint: disable=[C0301]
             tmp_tweet['false_match'] = False
+
 
             tw_detail.append(mode)
             tw_detail.append(tmp_tweet)
 
-        logger.debug(f"Total Collected Tweets: {len(tw_detail)/2}")
+        logger.debug("Total Collected Tweets: %s", len(tw_detail)/2)
     return tw_detail
 
 
@@ -88,8 +94,8 @@ def tweets_iterator(iterator):
             data = next(twpages)
             yield data
             sleep_time = 4
-        except (tweepy.errors.TwitterServerError, tweepy.errors.TooManyRequests) as e:
-            logger.debug(f"Twitter 503/429. Backing off for: {sleep_time}s")
+        except (tweepy.errors.TwitterServerError, tweepy.errors.TooManyRequests):
+            logger.debug("Twitter 503/429. Backing off for: %ss", sleep_time)
             sleep_time = backoff(sleep_time)
         except StopIteration:
             return None
@@ -99,15 +105,16 @@ def create_twitter_client() -> tweepy.Client:
     """Returns twitter client"""
     try:
         token = getenv("TW_BEARER_TOKEN")
-        cl = tweepy.Client(bearer_token=token)
-    except Exception as e:
-        logger.exception(e)
-    return cl
+        client = tweepy.Client(bearer_token=token)
+    except Exception as err:
+        logger.exception(err)
+    return client
 
 
 def gen_twitter_executor():
+    """Wraps the twitter execuition pipeline"""
     def execute_twitter(query: str, translate=False, ignore={}):
-        tweets = get_data(querystring=query, 
+        tweets = get_data(querystring=query,
                           translate=translate,
                           ignore=ignore)
 
@@ -123,11 +130,11 @@ def full_lang(tweet_lang: str) -> str:
         'und': 'Undefined',
         'zxx': 'No linguistic content',
         'qme': 'Media Links',
-        'qht': 'Hashtags', 
+        'qht': 'Hashtags',
         'in': 'Indonesian'
     }
 
-    lang = "" 
+    lang = ""
     try:
         if tweet_lang in lang_dict:
             lang = lang_dict.get(tweet_lang)
@@ -135,9 +142,8 @@ def full_lang(tweet_lang: str) -> str:
             lang = languages.get(part1=tweet_lang).name
 
     except:
-        logger.error("Language not found: %s".format(tweet_lang))
-        pass
-        
+        logger.error("Language not found: %s", tweet_lang)
+
     return lang
 
 
@@ -168,20 +174,7 @@ def get_marker():
     result = os_client.search(index='tweets*', body=query)
 
     try:
-        return result['hits']['hits'][0]['_id']
-    except: 
+        _id = result['hits']['hits'][0]['_id']
+        return _id
+    except:
         return None
-
-
-#def pipeline_debug(tweet_id):
-#    
-#    from util import translate_text
-#    from html import unescape
-#    cl = create_twitter_client()
-#    tweet = cl.get_tweet(tweet_id, 
-#                         tweet_fields=['id', 'author_id', 'text', 'lang', 'public_metrics', 'created_at', 'entities'],
-#                         expansions=['author_id', 'referenced_tweets.id'], 
-#                         user_fields=['username'])
-#
-#    translated = unescape(translate_text(tweet[0].text)['translatedText'])
-#    print (translated)

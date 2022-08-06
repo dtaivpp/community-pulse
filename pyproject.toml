@@ -24,3 +24,12 @@ classifiers = [
 
 [project.scripts]
 pulse = "community_pulse.main:main"
+
+[tool.pylint.format]
+indent-string='  '
+
+[tool.pylint.Master]
+ignore-paths = ["test/*"]
+
+[tool.autopep8]
+indent-size=2

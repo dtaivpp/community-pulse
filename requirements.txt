@@ -4,4 +4,9 @@ google-cloud-translate
 iso-639
 pyyaml
 jsonpath-ng
+
+# Build/Test
 pytest
+autopep8
+pylint
+pre-commit
