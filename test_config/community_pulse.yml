@@ -3,15 +3,18 @@ settings:
   log_level: DEBUG
   log_dir: /var/log/
   opensearch:
-    hosts: 
+    hosts:
       - https://admin:admin@localhost:9200
     use_ssl: True
     verify_certs: False
+    ssl_show_warn: False
 
 jobs:
-  twitter: 
+  twitter:
     translate: True
-    query: "OpenSearch -OpenSearch2 -#NFT -opensea -openseanft"
+    query: "OpenSearch -#NFT -opensea -openseanft"
     ignore:
-      username: 
+      username:
         - archivearticles
+        - OPENSEARCH2
+        - OpenSearch
