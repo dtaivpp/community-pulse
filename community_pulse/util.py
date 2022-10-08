@@ -8,6 +8,7 @@ from opensearchpy import OpenSearch
 logger = logging.getLogger('community-pulse')
 _OS_CLIENT = None
 
+
 # def _check_for_marker(os_client: OpenSearch):
 #    """
 #    UNUSED
@@ -23,6 +24,7 @@ _OS_CLIENT = None
 #    return marker['_source']['marker']
 #
 #
+
 # def _set_marker(os_client: OpenSearch, marker):
 #    """
 #    UNUSED
