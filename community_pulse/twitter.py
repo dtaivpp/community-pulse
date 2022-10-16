@@ -38,7 +38,7 @@ def get_data(querystring, translate: bool, ignore: list):
                             expansions=['author_id', 'referenced_tweets.id'],
                             user_fields=['username'],
                             max_results=50,
-                            since_id=None)
+                            since_id=most_recent_tweet_id)
   # reverse=True)
 
   for tweet_page in tweets_iterator(tweets):
