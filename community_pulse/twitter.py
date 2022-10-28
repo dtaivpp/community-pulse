@@ -153,24 +153,25 @@ def full_lang(tweet_lang: str) -> str:
 def get_marker():
   """Get the last indexed tweet ID"""
   os_client = get_os_client()
-  """             "range": {
-            "created_at": {
-                "gte": "now-7d/d",
-                "lt": "now/d"
-            }
-        }, """
   query = {
-      "fields": ["_id"],
-      "sort": [{
-          "created_at": {
-              "order": "desc"
-          }
-      },
-          {
-              "_score": {
-                  "order": "desc"
+      "query": {
+        "bool": {
+          "filter": [
+            {
+              "range": {
+                "created_at": {
+                  "gte": "now-7d/d",
+                  "lt": "now/d"
+                }
               }
-      }
+            }
+          ]
+        }
+      },
+      "fields": ["_id"],
+      "sort": [
+        {"created_at": {"order": "desc"}},
+        {"_score": {"order": "desc"}}
       ],
       "size": 1
   }
