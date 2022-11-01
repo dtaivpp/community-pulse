@@ -160,8 +160,7 @@ def get_marker():
             {
               "range": {
                 "created_at": {
-                  "gte": "now-7d/d",
-                  "lt": "now/d"
+                  "gte": "now-7d/d"
                 }
               }
             }
