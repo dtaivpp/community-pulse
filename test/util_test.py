@@ -2,7 +2,7 @@ from os.path import exists
 
 
 def test_matches_filter():
-    from community_pulse.util import jsonpath_filters, matches_filter
+    from util import jsonpath_filters, matches_filter
     """Tests to ensure json path filtering works"""
     test_filters = [
         {
@@ -42,14 +42,14 @@ def test_parse_config():
 
 
 def test_backoff():
-    from community_pulse.util import backoff
+    from util import backoff
     current = 3
     expected = 9
     assert backoff(current) == expected
 
 
 def test_backoff_max():
-    from community_pulse.util import backoff
+    from util import backoff
     current = 20
     expected = 25
     assert backoff(current, max_backoff=25) == 25

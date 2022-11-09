@@ -1,14 +1,18 @@
 from os import getenv
-from datetime import datetime
 import time
 import logging
 import tweepy
-from community_pulse.util import to_ndjson, to_opensearch, backoff, get_os_client, matches_filter, jsonpath_filters
+from community_pulse.util import to_ndjson, \
+                                 to_opensearch, \
+                                 backoff, get_os_client, \
+                                 matches_filter, \
+                                 jsonpath_filters, \
+                                 index_name_builder
 
 logger = logging.getLogger('community-pulse')
 
 
-def get_data(querystring, translate: bool, ignore: list):
+def get_data(job, querystring, translate: bool, ignore: list):
   """
   Get Tweets is a consumable stream of tweets that match the arg params
   """
@@ -17,14 +21,15 @@ def get_data(querystring, translate: bool, ignore: list):
     from community_pulse.util import translate_text
 
   ignore_filters = jsonpath_filters(ignore)
+  tw_index = index_name_builder(job, job_type='twitter')
 
+  logger.debug(f"Tweet Index {tw_index}")
   client = create_twitter_client()
   # Needs updating such that if the marker wasn't from within the last
   # 7 days it returns none
   most_recent_tweet_id = get_marker()
 
   tw_detail = []
-  tw_index = f"tweets-{datetime.date(datetime.now())}"
 
   tweets = tweepy.Paginator(client.search_recent_tweets,
                             querystring,
@@ -101,6 +106,7 @@ def tweets_iterator(iterator):
       logger.debug("Twitter 503/429. Backing off for: %ss", sleep_time)
       sleep_time = backoff(sleep_time)
     except StopIteration:
+      logger.debug("Hit Stop Iteration")
       return None
 
 
@@ -108,6 +114,8 @@ def create_twitter_client() -> tweepy.Client:
   """Returns twitter client"""
   try:
     token = getenv("TW_BEARER_TOKEN")
+    if not len(token) == 0:
+      logger.debug("Got non-zero bearer token")
     client = tweepy.Client(bearer_token=token)
   except Exception as err:
     logger.exception(err)
@@ -116,8 +124,9 @@ def create_twitter_client() -> tweepy.Client:
 
 def gen_twitter_executor():
   """Wraps the twitter execuition pipeline"""
-  def execute_twitter(query: str, translate=False, ignore={}):
-    tweets = get_data(querystring=query,
+  def execute_twitter(job ,query: str, translate=False, ignore={}, type=""):
+    tweets = get_data(job,
+                      querystring=query,
                       translate=translate,
                       ignore=ignore)
 
@@ -174,7 +183,7 @@ def get_marker():
       ],
       "size": 1
   }
-  result = os_client.search(index='tweets*', body=query)
+  result = os_client.search(index='twitter*', body=query)
 
   try:
     _id = result['hits']['hits'][0]['_id']

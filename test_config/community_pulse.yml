@@ -10,9 +10,20 @@ settings:
     ssl_show_warn: False
 
 jobs:
-  twitter:
-    translate: True
+  OpenSearchCommunity:
+    type: twitter
+    translate: False
     query: "OpenSearch -#NFT -opensea -openseanft"
+    ignore:
+      username:
+        - archivearticles
+        - OPENSEARCH2
+        - OpenSearch
+  
+  OpenSearchCon:
+    type: twitter
+    translate: False
+    query: "#OpenSearchCon"
     ignore:
       username:
         - archivearticles

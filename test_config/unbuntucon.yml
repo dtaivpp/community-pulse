@@ -1,0 +1,15 @@
+settings:
+  log_level: DEBUG
+  log_dir: /var/log/
+  opensearch:
+    hosts:
+      - https://admin:admin@localhost:9200
+    use_ssl: True
+    verify_certs: False
+    ssl_show_warn: False
+
+jobs:
+  ubuntucon:
+    type: twitter
+    translate: False
+    query: "UbuntuSummit"

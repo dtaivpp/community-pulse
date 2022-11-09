@@ -4,10 +4,10 @@ def enforce_index_templates():
     """Validate index template is in place"""
     os_client = get_os_client()
 
-    if not os_client.indices.exists_index_template("tweets"):
+    if not os_client.indices.exists_index_template("twitter"):
         body = {
             "index_patterns": [
-                "tweets*"
+                "twitter*"
             ],
             "template": {
                 "settings": {
@@ -35,9 +35,10 @@ def enforce_index_templates():
                 }
             }
         }
-        os_client.indices.put_index_template("tweets", body=body)
+        os_client.indices.put_index_template("twitter", body=body)
 
 
 """ def create_meta_indices(os_client):
     if not os_client.indices.exists("markers"):
         os_client.indices.create("markers") """
+

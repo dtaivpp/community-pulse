@@ -1,7 +1,9 @@
+import os
 import time
 import logging
 from logging.handlers import RotatingFileHandler
 import json
+from datetime import datetime
 from opensearchpy import OpenSearch
 
 
@@ -58,8 +60,12 @@ def to_opensearch(data: list):
   """
   os_client = get_os_client()
   for batch in data:
-    os_client.bulk(batch)
-
+    logger.debug("Performing Bulk Insert")
+    try:
+      response = os_client.bulk(batch)
+      logger.debug(response)
+    except Exception as e:
+      logger.exception(e)
 
 def translate_text(text: str):
   """Translates text with Google Cloud Translate
@@ -133,6 +139,9 @@ def initialize_opensearch_client(opensearch_args):
   _OS_CLIENT = OpenSearch(**opensearch_args)
 
 
+def index_name_builder(job, job_type):
+  return f"{job_type}-{job}-{datetime.date(datetime.now())}"  
+
 def get_os_client():
   """Returns Already Instantiated OpenSearch Client"""
   if _OS_CLIENT is None:
@@ -143,9 +152,16 @@ def get_os_client():
 def init_logging(_logger: logging.Logger, log_level):
   """Initialize the logging"""
   formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+  log_dir='./log'
+
+  if not os.path.isdir(log_dir):
+    try:
+      os.makedirs(log_dir)
+    except:
+      raise PermissionError("Couldnt create %s", log_dir)
 
   # File Handler
-  file_handle = RotatingFileHandler('./log/community-pulse', backupCount=15)
+  file_handle = RotatingFileHandler(log_dir + "/community-pulse.log", backupCount=15)
   file_handle.setLevel(logging.DEBUG)
   file_handle.setFormatter(formatter)
 

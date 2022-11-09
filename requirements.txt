@@ -4,6 +4,7 @@ google-cloud-translate
 iso-639
 pyyaml
 jsonpath-ng
+python-dotenv
 
 # Build/Test
 pytest
