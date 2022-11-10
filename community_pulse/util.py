@@ -67,6 +67,7 @@ def to_opensearch(data: list):
     except Exception as e:
       logger.exception(e)
 
+
 def translate_text(text: str):
   """Translates text with Google Cloud Translate
 
@@ -94,16 +95,16 @@ def translate_text(text: str):
   return unescape(translation['translatedText'])
 
 
-def parse_config(config='/etc/community-pulse.yml'):
+def parse_config(config):
   """Parse the yaml config file"""
   import yaml
   with open(config, "r") as stream:
     try:
-      jobs = yaml.safe_load(stream)
+      loaded_config = yaml.safe_load(stream)
     except yaml.YAMLError as exc:
       logger.exception(exc)
 
-  return jobs
+  return loaded_config
 
 
 def jsonpath_filters(filter_list: dict) -> list:
@@ -139,8 +140,11 @@ def initialize_opensearch_client(opensearch_args):
   _OS_CLIENT = OpenSearch(**opensearch_args)
 
 
-def index_name_builder(job, job_type):
+def index_name_builder(job: str, job_type: str):
+  """This method creates a standardized way to build index names."""
+  job = job.lower()
   return f"{job_type}-{job}-{datetime.date(datetime.now())}"  
+
 
 def get_os_client():
   """Returns Already Instantiated OpenSearch Client"""
